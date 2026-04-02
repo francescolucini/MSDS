@@ -942,7 +942,7 @@ function checkSwordHit() {
   if (!enemy || enemy.userData.state === 'dying' || enemy.userData.hitCooldown > 0) return;
 
   // Check if sword is moving fast enough
-  if (swordSpeed < 1.5) return;
+  if (swordSpeed < 0.6) return;
 
   // Check collision with enemy body
   const enemyBodyPos = enemy.position.clone();
@@ -950,7 +950,7 @@ function checkSwordHit() {
 
   const dist = swordTipWorld.distanceTo(enemyBodyPos);
 
-  if (dist < 0.4) {
+  if (dist < 0.65) {
     hitEnemy();
     playSwordSwing();
   }
