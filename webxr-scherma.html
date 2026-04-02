@@ -824,15 +824,15 @@ function updateEnemy(dt) {
 
     const distToPlayerBody = swordTip.distanceTo(playerBodyPos);
 
-    // Check if blocked by shield
-    const distToShield = swordTip.distanceTo(shieldCenterWorld);
-    const shieldBlocking = distToShield < 0.55;
+    // Check if blocked by shield (cylinder check: XZ + Y range separately)
+    const shieldDXZ = Math.sqrt(Math.pow(swordTip.x - shieldCenterWorld.x, 2) + Math.pow(swordTip.z - shieldCenterWorld.z, 2));
+    const shieldBlocking = shieldDXZ < 0.6 && Math.abs(swordTip.y - shieldCenterWorld.y) < 0.7;
 
-    // Check if blocked by player sword
-    const distToPlayerSword = swordTip.distanceTo(swordTipWorld);
-    const swordBlocking = distToPlayerSword < 0.45;
+    // Check if blocked by player sword (cylinder check)
+    const swordDXZ = Math.sqrt(Math.pow(swordTip.x - swordTipWorld.x, 2) + Math.pow(swordTip.z - swordTipWorld.z, 2));
+    const swordBlocking = swordDXZ < 0.5 && Math.abs(swordTip.y - swordTipWorld.y) < 0.6;
 
-    if (data.attackTimer > 0.2 && data.attackTimer < 0.8) {
+    if (data.attackTimer > 0.15 && data.attackTimer < 0.85) {
       if (shieldBlocking || swordBlocking) {
         // Blocked!
         playBlock();
@@ -944,16 +944,16 @@ function checkSwordHit() {
   // Check if sword is moving fast enough
   if (swordSpeed < 0.6) return;
 
-  // Check collision with enemy body
-  const enemyBodyPos = enemy.position.clone();
-  enemyBodyPos.y = 1.0;
+  // Check collision with enemy body using cylinder: XZ distance + Y range
+  const checkHitCylinder = (tip) => {
+    const dxz = Math.sqrt(Math.pow(tip.x - enemy.position.x, 2) + Math.pow(tip.z - enemy.position.z, 2));
+    return dxz < 0.6 && tip.y > 0.2 && tip.y < 2.0;
+  };
 
-  const dist = swordTipWorld.distanceTo(enemyBodyPos);
   // Also check midpoint to catch fast swings that tunnel through in one frame
   const swordMidWorld = prevSwordTipWorld.clone().lerp(swordTipWorld, 0.5);
-  const distMid = swordMidWorld.distanceTo(enemyBodyPos);
 
-  if (dist < 0.65 || distMid < 0.65) {
+  if (checkHitCylinder(swordTipWorld) || checkHitCylinder(swordMidWorld)) {
     hitEnemy();
     playSwordSwing();
   }
