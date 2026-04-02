@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WebXR Soothing Shapes</title>
 <style>
-  body { margin: 0; background: #00001a; color: #fff; font-family: sans-serif; overflow: hidden; }
+  body { margin: 0; background: #0066aa; color: #fff; font-family: sans-serif; overflow: hidden; }
   #enterVR {
     position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
     padding: 16px 32px; font-size: 18px; background: #44aaff; color: #000;
@@ -68,8 +68,8 @@ function rand(min, max) { return min + Math.random() * (max - min); }
 
 // --- Scene ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x00001a);
-scene.fog = new THREE.FogExp2(0x00001a, 0.3);
+scene.background = new THREE.Color(0x0066aa);
+scene.fog = new THREE.FogExp2(0x0066aa, 0.3);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
 camera.position.set(0, 1.6, 0);
