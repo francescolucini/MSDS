@@ -332,6 +332,7 @@ function createEnemy() {
     hitCooldown: 0,
     attackTimer: 0,
     swordTipWorld: new THREE.Vector3(),
+    prevSwordTipWorld: new THREE.Vector3(),
     // Unpredictable attack variables
     attackType: 'center', // center, high, low, left, right
     attackSpeed: 1.0,
@@ -812,8 +813,9 @@ function updateEnemy(dt) {
     data.sword.rotation.y = data.swordOffsetX * thrustProgress * 0.5;
     data.sword.rotation.z = -data.swordOffsetY * thrustProgress * 0.3;
 
-    // Get sword tip position
-    data.sword.updateMatrixWorld();
+    // Get sword tip position (updateWorldMatrix(true) ensures parent chain is fresh)
+    data.prevSwordTipWorld.copy(data.swordTipWorld);
+    data.sword.updateWorldMatrix(true, false);
     const tipLocal = data.sword.userData.tip;
     tipLocal.getWorldPosition(data.swordTipWorld);
 
@@ -824,13 +826,20 @@ function updateEnemy(dt) {
 
     const distToPlayerBody = swordTip.distanceTo(playerBodyPos);
 
-    // Check if blocked by shield (cylinder check: XZ + Y range separately)
-    const shieldDXZ = Math.sqrt(Math.pow(swordTip.x - shieldCenterWorld.x, 2) + Math.pow(swordTip.z - shieldCenterWorld.z, 2));
-    const shieldBlocking = shieldDXZ < 0.6 && Math.abs(swordTip.y - shieldCenterWorld.y) < 0.7;
+    // Also check midpoint of enemy sword trajectory to catch fast attacks tunneling through
+    const enemySwordMid = data.prevSwordTipWorld.clone().lerp(data.swordTipWorld, 0.5);
 
-    // Check if blocked by player sword (cylinder check)
-    const swordDXZ = Math.sqrt(Math.pow(swordTip.x - swordTipWorld.x, 2) + Math.pow(swordTip.z - swordTipWorld.z, 2));
-    const swordBlocking = swordDXZ < 0.5 && Math.abs(swordTip.y - swordTipWorld.y) < 0.6;
+    const checkBlockCylinder = (tip) => {
+      const dShield = Math.sqrt(Math.pow(tip.x - shieldCenterWorld.x, 2) + Math.pow(tip.z - shieldCenterWorld.z, 2));
+      if (dShield < 0.6 && Math.abs(tip.y - shieldCenterWorld.y) < 0.7) return 'shield';
+      const dSword = Math.sqrt(Math.pow(tip.x - swordTipWorld.x, 2) + Math.pow(tip.z - swordTipWorld.z, 2));
+      if (dSword < 0.5 && Math.abs(tip.y - swordTipWorld.y) < 0.6) return 'sword';
+      return null;
+    };
+
+    const blockResult = checkBlockCylinder(swordTip) || checkBlockCylinder(enemySwordMid);
+    const shieldBlocking = blockResult === 'shield';
+    const swordBlocking = blockResult === 'sword';
 
     if (data.attackTimer > 0.15 && data.attackTimer < 0.85) {
       if (shieldBlocking || swordBlocking) {
@@ -1088,7 +1097,7 @@ renderer.setAnimationLoop((timestamp, frame) => {
 
     // Update sword tip position
     if (playerSword.parent) {
-      playerSword.updateMatrixWorld();
+      playerSword.updateWorldMatrix(true, false);
       const tipOffset = new THREE.Vector3(0, 0, -0.8);
       tipOffset.applyMatrix4(playerSword.matrixWorld);
       prevSwordTipWorld.copy(swordTipWorld);
