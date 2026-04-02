@@ -281,6 +281,9 @@ function createSword() {
   pommel.position.y = -0.13;
   group.add(pommel);
 
+  // Rotate sword to point forward from controller grip
+  group.rotation.x = -Math.PI / 2;
+
   return group;
 }
 
@@ -363,15 +366,16 @@ function createEnemy() {
   const armGeo = new THREE.CapsuleGeometry(0.05, 0.3, 4, 8);
   const armMat = new THREE.MeshStandardMaterial({ color: 0x442222, roughness: 0.7 });
   const arm = new THREE.Mesh(armGeo, armMat);
-  arm.position.set(0.3, 1.1, 0);
-  arm.rotation.z = -Math.PI / 4;
+  arm.position.set(0.25, 1.1, 0.1);
+  arm.rotation.z = -Math.PI / 6;
+  arm.rotation.x = Math.PI / 4;
   group.add(arm);
   group.userData.arm = arm;
 
-  // Enemy sword
+  // Enemy sword - positioned to thrust forward
   const enemySword = createEnemySword();
-  enemySword.position.set(0.45, 0.9, 0);
-  enemySword.rotation.z = -Math.PI / 4;
+  enemySword.position.set(0.25, 1.0, 0.2);
+  enemySword.rotation.x = Math.PI / 3; // Angled forward
   group.add(enemySword);
   group.userData.sword = enemySword;
 
@@ -749,12 +753,15 @@ function updateEnemy(dt) {
 
   if (data.state === 'attacking') {
     // Execute attack animation
-    data.attackTimer += dt * 3;
+    data.attackTimer += dt * 2.5;
 
-    // Swing sword
-    const swingAngle = Math.sin(data.attackTimer * Math.PI) * 1.2;
-    data.sword.rotation.z = -Math.PI / 4 + swingAngle;
-    data.sword.rotation.x = Math.sin(data.attackTimer * Math.PI * 2) * 0.3;
+    // Thrust sword forward toward player
+    const thrustProgress = Math.sin(data.attackTimer * Math.PI);
+    // Rotate sword to point more forward during thrust
+    data.sword.rotation.x = Math.PI / 3 + thrustProgress * 0.5;
+    // Move sword forward during attack
+    data.sword.position.z = 0.2 + thrustProgress * 0.6;
+    data.sword.position.y = 1.0 + thrustProgress * 0.1;
 
     // Get sword tip position
     data.sword.updateMatrixWorld();
@@ -804,8 +811,9 @@ function updateEnemy(dt) {
     enemy.position.addScaledVector(toPlayer, -1.5 * dt);
 
     // Reset sword position
-    data.sword.rotation.z = THREE.MathUtils.lerp(data.sword.rotation.z, -Math.PI / 4, dt * 5);
-    data.sword.rotation.x = THREE.MathUtils.lerp(data.sword.rotation.x, 0, dt * 5);
+    data.sword.rotation.x = THREE.MathUtils.lerp(data.sword.rotation.x, Math.PI / 3, dt * 5);
+    data.sword.position.z = THREE.MathUtils.lerp(data.sword.position.z, 0.2, dt * 5);
+    data.sword.position.y = THREE.MathUtils.lerp(data.sword.position.y, 1.0, dt * 5);
 
     if (distToPlayer > approachRange || data.attackCooldown <= 0) {
       data.state = 'idle';
@@ -813,8 +821,9 @@ function updateEnemy(dt) {
   } else {
     // Idle / approaching
     // Reset sword position
-    data.sword.rotation.z = THREE.MathUtils.lerp(data.sword.rotation.z, -Math.PI / 4, dt * 5);
-    data.sword.rotation.x = THREE.MathUtils.lerp(data.sword.rotation.x, 0, dt * 5);
+    data.sword.rotation.x = THREE.MathUtils.lerp(data.sword.rotation.x, Math.PI / 3, dt * 5);
+    data.sword.position.z = THREE.MathUtils.lerp(data.sword.position.z, 0.2, dt * 5);
+    data.sword.position.y = THREE.MathUtils.lerp(data.sword.position.y, 1.0, dt * 5);
 
     if (distToPlayer > attackRange) {
       // Approach
@@ -990,7 +999,7 @@ renderer.setAnimationLoop((timestamp, frame) => {
     // Update sword tip position
     if (playerSword.parent) {
       playerSword.updateMatrixWorld();
-      const tipOffset = new THREE.Vector3(0, 0.8, 0);
+      const tipOffset = new THREE.Vector3(0, 0, -0.8);
       tipOffset.applyMatrix4(playerSword.matrixWorld);
       prevSwordTipWorld.copy(swordTipWorld);
       swordTipWorld.copy(tipOffset);
